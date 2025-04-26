@@ -1,0 +1,104 @@
+---
+title: "UNICEF Report"
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Show Code"
+    code-tools: true
+    toc: true
+    toc-depth: 2
+    theme: cosmo
+jupyter: python3
+execute: 
+  echo: true
+  warning: false
+  message: false
+---
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+```
+
+## 📈 Global Trend of Moderate Food Poverty Over Time
+
+**Storyline**: This line chart represents the global trend of moderate food poverty over time, providing a visual representation of the fluctuating poverty rates worldwide. It reflects both global progress in reducing poverty as well as setbacks caused by global events such as conflicts, economic downturns, and health crises. This chart helps identify key moments in history when food insecurity worsened and allows for a deeper understanding of the factors driving these changes over the years.
+```{python}
+indicator = pd.read_excel("unicef_indicator_2.xlsx")
+df = indicator[['country', 'time_period', 'obs_value', 'sex', 'indicator']].copy()
+df = df[df['sex'] == 'Total']
+df.dropna(subset=['obs_value'], inplace=True)
+df['time_period'] = pd.to_numeric(df['time_period'], errors='coerce')
+
+ts_df = df.groupby("time_period", as_index=False)["obs_value"].mean()
+
+fig1 = px.line(ts_df, x="time_period", y="obs_value",
+title="Global Trend of Moderate Food Poverty Over Time",
+labels={"obs_value": "%"})
+fig1.show()
+```
+
+## 📊 Top 10 Countries – Moderate Food Poverty
+
+**Storyline**: This horizontal bar chart highlights the countries with the highest levels of moderate food poverty in the most recent year. By ranking the top 10 countries, this chart draws attention to the regions where the need for urgent intervention is greatest. It allows policymakers and organizations to identify key areas for humanitarian aid, where resources are most needed to combat hunger and malnutrition.
+
+```{python}
+latest_year = df['time_period'].max()
+bar_df = df[df['time_period'] == latest_year]
+top10 = bar_df.groupby("country", as_index=False)['obs_value'].mean().nlargest(10, 'obs_value')
+
+fig2 = px.bar(top10, x="obs_value", y="country", orientation='h',
+title=f"Top 10 Countries – Moderate Food Poverty ({latest_year})",
+labels={"obs_value": "%", "country": "Country"})
+fig2.show()
+```
+
+## 📉 Gender Disparities – Male vs Female
+
+**Storyline**: This scatter plot compares male and female food poverty rates in countries worldwide, highlighting the gender disparities in access to food. The chart reveals countries where females experience higher levels of food poverty, which is often linked to broader societal inequities such as unequal access to resources, education, and employment opportunities. It is crucial for addressing gender-specific policies and interventions to tackle food insecurity more effectively.
+
+```{python}
+sex_df = indicator[indicator['time_period'] == latest_year]
+pivot = sex_df.pivot_table(index='country', columns='sex', values='obs_value').dropna().reset_index()
+
+fig3 = px.scatter(pivot, x="Male", y="Female", hover_name="country",
+trendline="ols",
+title=f"Male vs Female Food Poverty ({latest_year})",
+labels={"Male": "Male (%)", "Female": "Female (%)"})
+fig3.show()
+```
+
+## 🌍 World Map – Country-Level Food Poverty Rates
+
+**Storyline**: This choropleth map provides a geographic overview of food poverty rates across different countries, offering a clear visual of how the issue varies from region to region. The color-coded map easily shows which regions are most affected by moderate food poverty, helping to highlight critical areas where global efforts should focus. It also serves as a tool for global policymakers and international organizations to allocate resources effectively.
+
+```{python}
+map_df = df[df['time_period'] == latest_year]
+avg_map = map_df.groupby("country", as_index=False)['obs_value'].mean()
+
+fig4 = px.choropleth(avg_map, locations="country", locationmode="country names",
+color="obs_value", hover_name="country",
+title=f"World Map: Food Poverty Rates ({latest_year})",
+color_continuous_scale="YlOrRd",
+labels={"obs_value": "%"})
+fig4.show()
+```
+
+## 🔎 Interactive Country-Level Trends Over Time
+
+**Storyline**: This interactive chart allows for a deeper exploration of how food poverty has changed over time within individual countries. By providing a country-by-country view, the chart enables users to analyze national trends and see which countries have made significant progress and which have seen deterioration. It’s a key tool for evaluating the effectiveness of national policies and external interventions in combating food poverty.
+
+```{python}
+fig5 = px.line(df, x="time_period", y="obs_value", color="country",
+title="Interactive Country-Level Trends",
+labels={"obs_value": "%", "time_period": "Year"})
+fig5.update_traces(mode="lines+markers")
+fig5.show()
+```
+**Conclusion**: This report highlights the ongoing challenge of food poverty worldwide, with a specific focus on moderate food poverty rates. The charts reveal trends over time, gender disparities, and country-level variations that offer valuable insights into global food insecurity. Despite improvements in some regions, significant work remains to address the systemic causes of food poverty. With targeted policies, strategic interventions, and increased global cooperation, it is possible to mitigate food insecurity and ensure better access to food for vulnerable populations. Continued monitoring and action are essential to achieving long-term solutions and combating global hunger effectively.
+
+---
+
+*End of Report*
